@@ -16,12 +16,14 @@ defmodule Mortar.Net do
     end
   end
 
+  @spec guess_host_fqdn! :: String.t()
   def guess_host_fqdn! do
     {:ok, fqdn} = guess_host_fqdn()
     fqdn
   end
 
-  def integer_to_ip_address4(value) when is_integer(value) do
+  @spec integer_to_ipv4(integer()) :: :inet.ip4_address()
+  def integer_to_ipv4(value) when is_integer(value) do
     <<
       a::integer-size(8),
       b::integer-size(8),
@@ -31,19 +33,35 @@ defmodule Mortar.Net do
     {a, b, c, d}
   end
 
+  @spec string_to_ip_address(String.t()) :: :inet.ip_address()
   def string_to_ip_address(value) when is_binary(value) do
     {:ok, ip} = :inet.parse_address(to_charlist(value))
     ip
   end
 
+  @spec ip_to_string(:inet.ip_address()) :: {:ok, String.t()} | {:error, :bad_val}
   def ip_to_string(tup) when is_tuple(tup) do
-    tup
-    |> :inet.ntoa()
-    |> to_string()
+    if :inet.is_ip_address(tup) do
+      result =
+        tup
+        |> :inet.ntoa()
+        |> to_string()
+
+      {:ok, result}
+    else
+      {:error, :bad_val}
+    end
   end
 
+  @spec ip_to_string!(:inet.ip_address()) :: String.t()
+  def ip_to_string!(tup) when is_tuple(tup) do
+    {:ok, str} = ip_to_string(tup)
+    str
+  end
+
+  @spec maybe_ip_to_string(nil | :inet.ip_address()) :: {:ok, nil | String.t()} | {:error, :bad_val}
   def maybe_ip_to_string(nil) do
-    nil
+    {:ok, nil}
   end
 
   def maybe_ip_to_string(tup) when is_tuple(tup) do

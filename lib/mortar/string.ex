@@ -66,6 +66,7 @@ defmodule Mortar.String do
 
   defguard is_utf8_twochar_newline(c1, c2) when c1 == 0x0D and c2 == 0x0A
 
+  @spec utf8_char_byte_size(char()) :: non_neg_integer()
   def utf8_char_byte_size(c) when c < 0x80 do
     1
   end
@@ -82,7 +83,11 @@ defmodule Mortar.String do
     4
   end
 
-  def split_upto_newline(blob) do
+  @doc """
+  Splits a string up to the first newline
+  """
+  @spec split_upto_newline(String.t()) :: [String.t()]
+  def split_upto_newline(blob) when is_binary(blob) do
     do_split_upto_newline(blob, blob, 0)
   end
 
@@ -120,6 +125,9 @@ defmodule Mortar.String do
     do_split_upto_newline(blob, rest, count + utf8_char_byte_size(c))
   end
 
+  @doc """
+
+  """
   @spec split_by_newlines(binary(), [split_by_newlines_option()]) :: [binary()]
   def split_by_newlines(blob, options \\ []) do
     do_split_by_newlines(blob, blob, 0, [], options)
@@ -200,99 +208,160 @@ defmodule Mortar.String do
   end
 
   @doc """
-  Splits off as many space characters as possible
+  Splits a string by its leading space as much as possible.
+
+  The function will always return a 2-element tuple, the first element is the spaces and the second
+  is the remainder of the string.
   """
-  @spec split_spaces(binary(), list()) :: {spaces::binary(), rest::binary()}
-  def split_spaces(rest, acc \\ [])
+  @spec split_leading_spaces(binary()) :: {spaces::binary(), rest::binary()}
+  def split_leading_spaces(rest) do
+    do_split_leading_spaces(rest, [])
+  end
 
-  def split_spaces(<<>> = rest, acc) do
+  defp do_split_leading_spaces(<<>> = rest, acc) do
     {list_to_utf8_binary(Enum.reverse(acc)), rest}
   end
 
-  def split_spaces(<<c::utf8, rest::binary>>, acc) when is_utf8_space_like_char(c) do
-    split_spaces(rest, [c | acc])
+  defp do_split_leading_spaces(<<c::utf8, rest::binary>>, acc) when is_utf8_space_like_char(c) do
+    do_split_leading_spaces(rest, [c | acc])
   end
 
-  def split_spaces(rest, acc) do
+  defp do_split_leading_spaces(rest, acc) do
     {list_to_utf8_binary(Enum.reverse(acc)), rest}
   end
 
-  def split_spaces_and_newlines(rest, acc \\ [])
+  @doc """
+  Splits a string by its leading space and newlines as much as possible.
 
-  def split_spaces_and_newlines(<<c::utf8, rest::binary>>, acc) when is_utf8_space_like_char(c) do
-    split_spaces_and_newlines(rest, [c | acc])
+  The function will always return a 2-element tuple, the first element is the spaces or newlines
+  and the second is the remainder of the string.
+
+  This is the alternative to `split_leading_spaces/1` which only splits spaces.
+  """
+  @spec split_leading_spaces_and_newlines(binary()) ::
+    {spaces_and_newlines::binary(), rest::binary()}
+  def split_leading_spaces_and_newlines(rest) do
+    do_split_leading_spaces_and_newlines(rest, [])
   end
 
-  def split_spaces_and_newlines(<<c1::utf8, c2::utf8, rest::binary>>, acc) when is_utf8_twochar_newline(c1, c2) do
-    split_spaces_and_newlines(rest, [c2, c1 | acc])
+  defp do_split_leading_spaces_and_newlines(
+    <<c1::utf8, c2::utf8, rest::binary>>,
+    acc
+  ) when is_utf8_twochar_newline(c1, c2) do
+    do_split_leading_spaces_and_newlines(rest, [c2, c1 | acc])
   end
 
-  def split_spaces_and_newlines(<<c::utf8, rest::binary>>, acc) when is_utf8_newline_like_char(c) do
-    split_spaces_and_newlines(rest, [c | acc])
+  defp do_split_leading_spaces_and_newlines(
+    <<c::utf8, rest::binary>>,
+    acc
+  ) when is_utf8_newline_like_char(c) do
+    do_split_leading_spaces_and_newlines(rest, [c | acc])
   end
 
-  def split_spaces_and_newlines(rest, acc) do
+  defp do_split_leading_spaces_and_newlines(
+    <<c::utf8, rest::binary>>,
+    acc
+  ) when is_utf8_space_like_char(c) do
+    do_split_leading_spaces_and_newlines(rest, [c | acc])
+  end
+
+  defp do_split_leading_spaces_and_newlines(rest, acc) do
     {list_to_utf8_binary(Enum.reverse(acc)), rest}
   end
 
-  def truncate_spaces(bin, state \\ :start, acc \\ [])
+  @doc """
+  Replaces excess spaces and lines with a replacement string, typically just a single space.
 
-  def truncate_spaces(<<>>, _, acc) do
+  The usecase for this is to ingest user input which may contain multiple spaces before, between and
+  after the main content of the string.
+
+  From experience, users may copy their data from applications which include normally invisible
+  space or newline characters that cause problems on the server side.
+
+  One may be asking, so what does this do differently than `String.trim/1`? Truncation.
+
+  Usage:
+
+      truncate_spaces(my_string)
+      truncate_spaces("    ") #=> ""
+      truncate_spaces("  Word  ") #=> "Word"
+      truncate_spaces(" These   are\\nmultiple   spaces or\r\nlines") #=> "These are multiple spaces or lines"
+
+  """
+  @spec truncate_spaces(bin::String.t(), replacement::String.t()) :: String.t()
+  def truncate_spaces(bin, replacement \\ " ") do
+    do_truncate_spaces(bin, replacement)
+  end
+
+  defp do_truncate_spaces(bin, replacement, state \\ :start, acc \\ [])
+
+  defp do_truncate_spaces(<<>>, _replacement, _, acc) do
     IO.iodata_to_binary(Enum.reverse(acc))
   end
 
-  def truncate_spaces(
+  defp do_truncate_spaces(
     <<c::utf8, rest::binary>>,
+    replacement,
     :start,
     acc
   ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
-    truncate_spaces(rest, :start, acc)
+    do_truncate_spaces(rest, replacement, :start, acc)
   end
 
-  def truncate_spaces(
+  defp do_truncate_spaces(
     <<c1::utf8, c2::utf8, rest::binary>>,
+    replacement,
     :start,
     acc
   ) when is_utf8_twochar_newline(c1, c2) do
-    truncate_spaces(rest, :start, acc)
+    do_truncate_spaces(rest, replacement, :start, acc)
   end
 
-  def truncate_spaces(<<rest::binary>>, :start, acc) do
-    truncate_spaces(rest, :body, acc)
+  defp do_truncate_spaces(<<rest::binary>>, replacement, :start, acc) do
+    do_truncate_spaces(rest, replacement, :body, acc)
   end
 
-  def truncate_spaces(
+  defp do_truncate_spaces(
     <<c::utf8, _rest::binary>> = rest,
+    replacement,
     :body,
     acc
   ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
-    case split_spaces_and_newlines(rest) do
+    case split_leading_spaces_and_newlines(rest) do
       {_, "" = rest} ->
-        truncate_spaces(rest, :body, acc)
+        do_truncate_spaces(rest, replacement, :body, acc)
 
       {_, rest} ->
-        truncate_spaces(rest, :body, [" " | acc])
+        do_truncate_spaces(rest, replacement, :body, [replacement | acc])
     end
   end
 
-  def truncate_spaces(
+  defp do_truncate_spaces(
     <<c1::utf8, c2::utf8, _rest::binary>> = rest,
+    replacement,
     :body,
     acc
   ) when is_utf8_twochar_newline(c1, c2) do
-    case split_spaces_and_newlines(rest) do
+    case split_leading_spaces_and_newlines(rest) do
       {_, "" = rest} ->
-        truncate_spaces(rest, :body, acc)
+        do_truncate_spaces(rest, replacement, :body, acc)
 
       {_, rest} ->
-        truncate_spaces(rest, :body, [" " | acc])
+        do_truncate_spaces(rest, replacement, :body, [replacement | acc])
     end
   end
 
-  def truncate_spaces(<<c::utf8, rest::binary>>, :body, acc) do
-    truncate_spaces(rest, :body, [<<c::utf8>> | acc])
+  defp do_truncate_spaces(<<c::utf8, rest::binary>>, replacement, :body, acc) do
+    do_truncate_spaces(rest, replacement, :body, [<<c::utf8>> | acc])
   end
 
+  @doc """
+  String to Atom, unless it already is an atom in which case this will return as-is.
+
+  Note this function uses `String.to_existing_atom/1` internally and may raise if the atom does not
+  exist.
+  """
+  @spec string_to_atom(String.t()) :: atom()
   def string_to_atom(value) when is_atom(value) do
     value
   end
@@ -301,6 +370,15 @@ defmodule Mortar.String do
     String.to_existing_atom(value)
   end
 
+  @doc """
+  Atom to GQL-styled enum value, typically it's just upcased.
+
+  Usage:
+
+      atom_to_gql_enum(value)
+      atom_to_gql_enum(:my_enum_value) #=> "MY_ENUM_VALUE"
+
+  """
   @spec atom_to_gql_enum(nil | atom() | String.t()) :: String.t()
   def atom_to_gql_enum(nil) do
     nil
@@ -318,37 +396,57 @@ defmodule Mortar.String do
   end
 
   @doc """
-  Returns nil if the value is nil, or the string is empty, otherwise returns the input value
+  Returns the string is it contains any non-space or non-newline characters, nil otherwise.
+
+  Usage:
+
+      presence(value)
+      presence("   ") #=> nil
+      presence(" A ") #=> " A "
+
   """
-  @spec string_presence(any()) :: nil | any()
-  def string_presence(nil), do: nil
+  @spec presence(any()) :: nil | any()
+  def presence(nil), do: nil
 
-  def string_presence(""), do: nil
+  def presence(""), do: nil
 
-  def string_presence(value) when is_binary(value) do
-    if value =~ ~r/\A\s+\z/ do
-      # it was completely blank
-      nil
-    else
-      value
-    end
+  def presence(value) when is_binary(value) do
+    do_presence(value, value)
   end
 
-  def string_presence(value), do: value
-
-  @spec is_string_present?(any()) :: boolean()
-  def is_string_present?(value) do
-    case string_presence(value) do
-      nil ->
-        false
-
-      _ ->
-        true
-    end
+  defp do_presence(<<>>, _org) do
+    nil
   end
 
-  def is_string_blank?(value) do
-    not is_string_present?(value)
+  defp do_presence(
+    <<c1::utf8, c2::utf8, rest::binary>>,
+    org
+  ) when is_utf8_twochar_newline(c1, c2) do
+    do_presence(rest, org)
+  end
+
+  defp do_presence(
+    <<c::utf8, rest::binary>>,
+    org
+  ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
+    do_presence(rest, org)
+  end
+
+  defp do_presence(
+    <<_c::utf8, _rest::binary>>,
+    org
+  ) do
+    org
+  end
+
+  @spec is_present?(binary()) :: boolean()
+  def is_present?(value) do
+    not is_nil(presence(value))
+  end
+
+  @spec is_blank?(binary()) :: boolean()
+  def is_blank?(value) do
+    is_nil(presence(value))
   end
 
   @doc """
@@ -360,9 +458,9 @@ defmodule Mortar.String do
   Returns:
   * `element` - the element that was present, or nil if nothing was found
   """
-  @spec first_present_string(list()) :: any()
-  def first_present_string(list) when is_list(list) do
-    Enum.find(list, &is_string_present?/1)
+  @spec first_present(list()) :: any()
+  def first_present(list) when is_list(list) do
+    Enum.find(list, &is_present?/1)
   end
 
   def strip_non_printable(bin, acc \\ [])

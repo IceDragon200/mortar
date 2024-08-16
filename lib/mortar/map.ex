@@ -1,4 +1,12 @@
 defmodule Mortar.Map do
+  def presence(map) when is_map(map) and map_size(map) > 0 do
+    map
+  end
+
+  def presence(map) when is_map(map) do
+    nil
+  end
+
   @doc """
   Sets given key in map even if explictly nil.
 

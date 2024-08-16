@@ -14,7 +14,7 @@ defmodule Mortar.A do
   end
 
   @doc """
-  (A)ssociative Array (Put New), acts like Map.put/3 and Keyword.put/3
+  (A)ssociative Array (Put New), acts like Map.put_new/3 and Keyword.put_new/3
   """
   @spec aput_new(map() | Keyword.t(), atom(), any()) :: any()
   def aput_new(list, key, value)
@@ -33,11 +33,11 @@ defmodule Mortar.A do
   @spec asplit(map() | Keyword.t(), [atom()]) :: any()
   def asplit(list, keys)
 
-  def asplit(list, keys) when is_list(list) do
+  def asplit(list, keys) when is_list(list) and is_list(keys) do
     Keyword.split(list, keys)
   end
 
-  def asplit(map, keys) when is_map(map) do
+  def asplit(map, keys) when is_map(map) and is_list(keys) do
     Map.split(map, keys)
   end
 
@@ -47,11 +47,11 @@ defmodule Mortar.A do
   @spec atake(map() | Keyword.t(), [atom()]) :: any()
   def atake(list, keys)
 
-  def atake(list, keys) when is_list(list) do
+  def atake(list, keys) when is_list(list) and is_list(keys) do
     Keyword.take(list, keys)
   end
 
-  def atake(map, keys) when is_map(map) do
+  def atake(map, keys) when is_map(map) and is_list(keys) do
     Map.take(map, keys)
   end
 
@@ -61,11 +61,11 @@ defmodule Mortar.A do
   @spec adrop(map() | Keyword.t(), [atom()]) :: any()
   def adrop(list, keys)
 
-  def adrop(list, keys) when is_list(list) do
+  def adrop(list, keys) when is_list(list) and is_list(keys) do
     Keyword.drop(list, keys)
   end
 
-  def adrop(map, keys) when is_map(map) do
+  def adrop(map, keys) when is_map(map) and is_list(keys) do
     Map.drop(map, keys)
   end
 end

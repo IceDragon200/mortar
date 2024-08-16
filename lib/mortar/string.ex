@@ -496,26 +496,35 @@ defmodule Mortar.String do
     false
   end
 
-  def identify_casing(str, acc \\ :none)
+  @spec identify_casing(String.t()) :: :none | :upcase | :downcase | :mixed
+  def identify_casing(str) do
+    do_identify_casing(str, :none)
+  end
 
-  def identify_casing(<<>>, casing) do
+  defp do_identify_casing(<<>>, casing) do
     casing
   end
 
-  def identify_casing(
+  defp do_identify_casing(
     <<c::utf8, rest::binary>>,
     casing
-  ) when c >= ?A and c <= ?Z and casing in [:none, :upcase], do: identify_casing(rest, :upcase)
+  ) when c >= ?A and c <= ?Z and casing in [:none, :upcase] do
+    do_identify_casing(rest, :upcase)
+  end
 
-  def identify_casing(
+  defp do_identify_casing(
     <<c::utf8, rest::binary>>,
     casing
-  ) when c >= ?a and c <= ?z and casing in [:none, :downcase], do: identify_casing(rest, :downcase)
+  ) when c >= ?a and c <= ?z and casing in [:none, :downcase] do
+    do_identify_casing(rest, :downcase)
+  end
 
-  def identify_casing(
+  defp do_identify_casing(
     <<_c::utf8, rest::binary>>,
     _
-  ), do: identify_casing(rest, :mixed)
+  ) do
+    do_identify_casing(rest, :mixed)
+  end
 
   @spec stream_binary_lines(binary()) :: Enum.t()
   def stream_binary_lines(bin) when is_binary(bin) do
@@ -552,7 +561,10 @@ defmodule Mortar.String do
   end
 
   @spec stream_binary_chunks(binary(), non_neg_integer()) :: Enum.t()
-  def stream_binary_chunks(bin, chunk_size) do
+  def stream_binary_chunks(
+    bin,
+    chunk_size
+  ) when is_binary(bin) and is_integer(chunk_size) and chunk_size > 0 do
     Stream.resource(
       fn ->
         bin
@@ -627,7 +639,9 @@ defmodule Mortar.String do
     IO.iodata_to_binary(do_normalize_alpha_numeric(str))
   end
 
-  defp do_normalize_alpha_numeric(<<>>), do: []
+  defp do_normalize_alpha_numeric(<<>>) do
+    []
+  end
 
   defp do_normalize_alpha_numeric(
     <<c::utf8, rest::binary>>
@@ -643,52 +657,55 @@ defmodule Mortar.String do
   Strips any non-letter character from the string
   """
   @spec normalize_alpha(String.t()) :: String.t()
-  def normalize_alpha(number, acc \\ [])
-
-  def normalize_alpha(<<>>, acc) do
-    acc
-    |> Enum.reverse()
-    |> IO.iodata_to_binary()
+  def normalize_alpha(str) do
+    IO.iodata_to_binary(do_normalize_alpha(str))
   end
 
-  def normalize_alpha(<<alpha, rest::binary>>, acc) when alpha in ?A..?Z or alpha in ?a..?z do
-    normalize_alpha(rest, [alpha | acc])
+  defp do_normalize_alpha(<<>>) do
+    []
   end
 
-  def normalize_alpha(<<_, rest::binary>>, acc) do
-    normalize_alpha(rest, acc)
+  defp do_normalize_alpha(<<c::utf8, rest::binary>>) when c in ?A..?Z or c in ?a..?z do
+    [c | do_normalize_alpha(rest)]
+  end
+
+  defp do_normalize_alpha(<<_, rest::binary>>) do
+    do_normalize_alpha(rest)
   end
 
   @doc """
   Strips any non-digit character from the string
   """
   @spec normalize_numeric(String.t()) :: String.t()
-  def normalize_numeric(number, acc \\ [])
-
-  def normalize_numeric(<<>>, acc) do
-    acc
-    |> Enum.reverse()
-    |> IO.iodata_to_binary()
+  def normalize_numeric(str) do
+    IO.iodata_to_binary(do_normalize_numeric(str))
   end
 
-  def normalize_numeric(<<digit, rest::binary>>, acc) when digit in ?0..?9 do
-    normalize_numeric(rest, [digit | acc])
+  defp do_normalize_numeric(<<>>) do
+    []
   end
 
-  def normalize_numeric(<<_, rest::binary>>, acc) do
-    normalize_numeric(rest, acc)
+  defp do_normalize_numeric(<<c::utf8, rest::binary>>) when c in ?0..?9 do
+    [c | do_normalize_numeric(rest)]
   end
 
-  @spec translate_mnemonic_string(String.t()) :: String.t()
-  def translate_mnemonic_string(nanp) when is_binary(nanp) do
-    do_translate_mnemonic_string(nanp, [])
+  defp do_normalize_numeric(<<_, rest::binary>>) do
+    do_normalize_numeric(rest)
   end
 
-  @spec do_translate_mnemonic_string(String.t(), list) :: String.t()
-  defp do_translate_mnemonic_string("", acc) do
-    acc
-    |> Enum.reverse()
-    |> IO.iodata_to_binary()
+  @doc """
+  Given an alpha-string, this function will change all letters to their telephone mnemonic
+  equivalent.
+
+  Usage:
+
+      tn_mnemonic_to_string(str)
+      tn_mnemonic_to_string("MORTAR") #=> "667827"
+
+  """
+  @spec tn_mnemonic_to_string(String.t()) :: String.t()
+  def tn_mnemonic_to_string(number) when is_binary(number) do
+    IO.iodata_to_binary(do_tn_mnemonic_to_string(number))
   end
 
   mnemonic_map = %{
@@ -746,13 +763,17 @@ defmodule Mortar.String do
     "z" => "9"
   }
 
+  defp do_tn_mnemonic_to_string(<<>>) do
+    []
+  end
+
   for {letter, number} <- mnemonic_map do
-    defp do_translate_mnemonic_string(<<unquote(letter), rest::binary>>, acc) do
-      do_translate_mnemonic_string(rest, [unquote(number) | acc])
+    defp do_tn_mnemonic_to_string(<<unquote(letter), rest::binary>>) do
+      [unquote(number) | do_tn_mnemonic_to_string(rest)]
     end
   end
 
-  defp do_translate_mnemonic_string(<<c::utf8, rest::binary>>, acc) do
-    do_translate_mnemonic_string(rest, [c | acc])
+  defp do_tn_mnemonic_to_string(<<c::utf8, rest::binary>>) do
+    [<<c::utf8>> | do_tn_mnemonic_to_string(rest)]
   end
 end

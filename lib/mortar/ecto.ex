@@ -66,20 +66,14 @@ defmodule Mortar.Ecto do
   Args:
   * `module` :: the ecto schema
   """
-  @spec generate_id(module) :: binary | integer
+  @spec generate_id(module()) :: binary() | integer()
   def generate_id(module) do
     case module.__schema__(:primary_key) do
       [] ->
         raise "expected module schema to have a primary key"
 
       [field] ->
-        case module.__schema__(:type, field) do
-          :binary_id ->
-            Ecto.UUID.generate()
-
-          Ecto.ULID ->
-            Ecto.ULID.generate()
-        end
+        generate_id(module, field)
     end
   end
 
@@ -90,7 +84,7 @@ defmodule Mortar.Ecto do
   * `module` - the ecto schema
   * `field` - the field to generate the id for
   """
-  @spec generate_id(module, atom) :: binary | integer
+  @spec generate_id(module(), atom()) :: binary() | integer()
   def generate_id(module, field) do
     case module.__schema__(:type, field) do
       :binary_id ->

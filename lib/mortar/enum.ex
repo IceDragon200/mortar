@@ -1,4 +1,8 @@
 defmodule Mortar.Enum do
+  @type order :: :asc | :desc
+
+  @type field_and_order :: {field::any(), order()}
+
   @spec to_map_by(Enumerable.t(), (any -> key::any())) :: map()
   def to_map_by(enumerable, callback) do
     Enum.reduce(enumerable, %{}, fn item, acc ->
@@ -7,8 +11,8 @@ defmodule Mortar.Enum do
   end
 
   @spec sort_by_field([map()], atom(), :asc | :desc) :: [map()]
-  def sort_by_field([], _field, _order) do
-    []
+  def sort_by_field([] = items, _field, _order) do
+    items
   end
 
   def sort_by_field(items, field, order) when order in [:asc, :desc] do
@@ -35,8 +39,12 @@ defmodule Mortar.Enum do
     end
   end
 
-  def sort_by_fields([], _list) do
-    []
+  @doc """
+  Sort given records by the specified fields and order.
+  """
+  @spec sort_by_fields([map()], [field_and_order()]) :: [map()]
+  def sort_by_fields([] = items, _list) do
+    items
   end
 
   def sort_by_fields(items, []) do

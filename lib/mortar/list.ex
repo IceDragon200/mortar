@@ -1,4 +1,5 @@
 defmodule Mortar.List do
+  @spec presence(list()) :: nil | list()
   def presence([]) do
     nil
   end

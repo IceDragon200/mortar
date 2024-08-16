@@ -109,8 +109,73 @@ defmodule Mortar.StringTest do
   end
 
   describe "normalize_alpha_numeric/1" do
+    test "can normalize an empty string" do
+      assert "" == Subject.normalize_alpha_numeric("")
+    end
+
     test "can normalize an alpha-numeric string" do
       assert "ABC2" == Subject.normalize_alpha_numeric("  ABC_2")
+    end
+  end
+
+  describe "normalize_numeric/1" do
+    test "can normalize an empty string" do
+      assert "" == Subject.normalize_numeric("")
+    end
+
+    test "can normalize an alpha-numeric string" do
+      assert "2" == Subject.normalize_numeric("  ABC_2")
+    end
+  end
+
+  describe "normalize_alpha/1" do
+    test "can normalize an empty string" do
+      assert "" == Subject.normalize_alpha("")
+    end
+
+    test "can normalize an alpha-numeric string" do
+      assert "ABC" == Subject.normalize_alpha("  ABC_2")
+    end
+  end
+
+  describe "tn_mnemonic_to_string/1" do
+    test "can convert a telephone mnemonic to a phone number" do
+      assert "667827 542" == Subject.tn_mnemonic_to_string("MORTAR LIB")
+    end
+  end
+
+  describe "identify_casing/1" do
+    test "will report none for empty string" do
+      assert :none == Subject.identify_casing("")
+    end
+
+    test "can identify the intended casing of an alpha-string" do
+      assert :downcase == Subject.identify_casing("abcdef")
+      assert :upcase == Subject.identify_casing("ABCDEF")
+    end
+
+    test "can identify a mixed case string" do
+      assert :mixed == Subject.identify_casing("Abcdef")
+    end
+  end
+
+  describe "stream_binary_lines/1" do
+    test "can stream a binary line by line" do
+      blob = """
+      1,2,3
+      4,5,6
+      7,8,9
+      """
+
+      result =
+        Subject.stream_binary_lines(blob)
+        |> Enum.into([])
+
+      assert [
+        "1,2,3",
+        "4,5,6",
+        "7,8,9",
+      ] == result
     end
   end
 end

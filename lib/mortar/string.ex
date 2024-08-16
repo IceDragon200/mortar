@@ -300,15 +300,6 @@ defmodule Mortar.String do
   end
 
   defp do_truncate_spaces(
-    <<c::utf8, rest::binary>>,
-    replacement,
-    :start,
-    acc
-  ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
-    do_truncate_spaces(rest, replacement, :start, acc)
-  end
-
-  defp do_truncate_spaces(
     <<c1::utf8, c2::utf8, rest::binary>>,
     replacement,
     :start,
@@ -317,16 +308,25 @@ defmodule Mortar.String do
     do_truncate_spaces(rest, replacement, :start, acc)
   end
 
+  defp do_truncate_spaces(
+    <<c::utf8, rest::binary>>,
+    replacement,
+    :start,
+    acc
+  ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
+    do_truncate_spaces(rest, replacement, :start, acc)
+  end
+
   defp do_truncate_spaces(<<rest::binary>>, replacement, :start, acc) do
     do_truncate_spaces(rest, replacement, :body, acc)
   end
 
   defp do_truncate_spaces(
-    <<c::utf8, _rest::binary>> = rest,
+    <<c1::utf8, c2::utf8, _rest::binary>> = rest,
     replacement,
     :body,
     acc
-  ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
+  ) when is_utf8_twochar_newline(c1, c2) do
     case split_leading_spaces_and_newlines(rest) do
       {_, "" = rest} ->
         do_truncate_spaces(rest, replacement, :body, acc)
@@ -337,11 +337,11 @@ defmodule Mortar.String do
   end
 
   defp do_truncate_spaces(
-    <<c1::utf8, c2::utf8, _rest::binary>> = rest,
+    <<c::utf8, _rest::binary>> = rest,
     replacement,
     :body,
     acc
-  ) when is_utf8_twochar_newline(c1, c2) do
+  ) when is_utf8_space_like_char(c) or is_utf8_newline_like_char(c) do
     case split_leading_spaces_and_newlines(rest) do
       {_, "" = rest} ->
         do_truncate_spaces(rest, replacement, :body, acc)
@@ -580,29 +580,41 @@ defmodule Mortar.String do
   Are all characters in the given string numbers?
   """
   @spec is_all_numeric?(String.t()) :: boolean
-  def is_all_numeric?(""), do: true
-  def is_all_numeric?(<<c, rest::binary>>) when c in ?0..?9, do: is_all_numeric?(rest)
-  def is_all_numeric?(_), do: false
+  def is_all_numeric?(<<>>), do: false
+  def is_all_numeric?(rest) when is_binary(rest), do: do_is_all_numeric?(rest)
+
+  defp do_is_all_numeric?(<<>>), do: true
+  defp do_is_all_numeric?(<<c::utf8, rest::binary>>) when c in ?0..?9 do
+    do_is_all_numeric?(rest)
+  end
+  defp do_is_all_numeric?(<<_c::utf8, _rest::binary>>), do: false
 
   @doc """
   Are all characters in the given string letters?
   """
-  @spec is_all_alpha?(String.t()) :: boolean
-  def is_all_alpha?(""), do: true
-  def is_all_alpha?(<<c, rest::binary>>) when c in ?A..?Z or c in ?a..?z, do: is_all_alpha?(rest)
-  def is_all_alpha?(_), do: false
+  @spec is_all_alpha?(String.t()) :: boolean()
+  def is_all_alpha?(<<>>), do: false
+  def is_all_alpha?(rest) when is_binary(rest), do: do_is_all_alpha?(rest)
+
+  defp do_is_all_alpha?(<<>>), do: true
+  defp do_is_all_alpha?(<<c::utf8, rest::binary>>) when c in ?A..?Z or c in ?a..?z do
+    do_is_all_alpha?(rest)
+  end
+  defp do_is_all_alpha?(<<_c::utf8, _rest::binary>>), do: false
 
   @doc """
   Are all characters in the given string numbers or letters?
   """
   @spec is_all_alpha_numeric?(String.t()) :: boolean
-  def is_all_alpha_numeric?(""), do: true
-  def is_all_alpha_numeric?(<<c, rest::binary>>) when c in ?0..?9, do: is_all_alpha_numeric?(rest)
+  def is_all_alpha_numeric?(<<>>), do: false
+  def is_all_alpha_numeric?(rest) when is_binary(rest), do: do_is_all_alpha_numeric?(rest)
 
-  def is_all_alpha_numeric?(<<c, rest::binary>>) when c in ?A..?Z or c in ?a..?z,
+  defp do_is_all_alpha_numeric?(<<>>), do: true
+  defp do_is_all_alpha_numeric?(<<c::utf8, rest::binary>>) when c in ?0..?9,
     do: is_all_alpha_numeric?(rest)
-
-  def is_all_alpha_numeric?(_), do: false
+  defp do_is_all_alpha_numeric?(<<c::utf8, rest::binary>>) when c in ?A..?Z or c in ?a..?z,
+    do: do_is_all_alpha_numeric?(rest)
+  defp do_is_all_alpha_numeric?(<<_c::utf8, _rest::binary>>), do: false
 
   @doc """
   Strips any non-alpha or non-digit characters from the string.
@@ -611,25 +623,20 @@ defmodule Mortar.String do
   If you need only letters, use `normalize_alpha/1` instead
   """
   @spec normalize_alpha_numeric(String.t()) :: String.t()
-  def normalize_alpha_numeric(number, acc \\ [])
-
-  def normalize_alpha_numeric(<<>>, acc) do
-    acc
-    |> Enum.reverse()
-    |> IO.iodata_to_binary()
+  def normalize_alpha_numeric(str) when is_binary(str) do
+    IO.iodata_to_binary(do_normalize_alpha_numeric(str))
   end
 
-  def normalize_alpha_numeric(<<digit, rest::binary>>, acc) when digit in ?0..?9 do
-    normalize_alpha_numeric(rest, [digit | acc])
+  defp do_normalize_alpha_numeric(<<>>), do: []
+
+  defp do_normalize_alpha_numeric(
+    <<c::utf8, rest::binary>>
+  ) when c in ?0..?9 or c in ?A..?Z or c in ?a..?z do
+    [c | do_normalize_alpha_numeric(rest)]
   end
 
-  def normalize_alpha_numeric(<<alpha, rest::binary>>, acc)
-      when alpha in ?A..?Z or alpha in ?a..?z do
-    normalize_alpha_numeric(rest, [alpha | acc])
-  end
-
-  def normalize_alpha_numeric(<<_, rest::binary>>, acc) do
-    normalize_alpha_numeric(rest, acc)
+  defp do_normalize_alpha_numeric(<<_, rest::binary>>) do
+    do_normalize_alpha_numeric(rest)
   end
 
   @doc """

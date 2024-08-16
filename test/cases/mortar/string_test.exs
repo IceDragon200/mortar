@@ -49,7 +49,10 @@ defmodule Mortar.StringTest do
     end
 
     test "can handle a string with only spaces and newlines" do
-      assert "" == Subject.truncate_spaces("\n\r\n")
+      assert "" == Subject.truncate_spaces("\n")
+      assert "" == Subject.truncate_spaces("   \r   ")
+      assert "" == Subject.truncate_spaces("\r\n")
+      assert "" == Subject.truncate_spaces("\r\n   \r\n")
     end
 
     test "all leading spaces will be trimmed" do
@@ -78,6 +81,36 @@ defmodule Mortar.StringTest do
     test "will return string is it contains any non-spaces or non-newlines" do
       assert "Hello, World" == Subject.presence("Hello, World")
       assert "    Space!" == Subject.presence("    Space!")
+    end
+  end
+
+  describe "is_all_numeric?/1" do
+    test "determines if a string only contains numbers" do
+      refute Subject.is_all_numeric?("")
+      assert Subject.is_all_numeric?("123")
+      refute Subject.is_all_numeric?("1a23")
+    end
+  end
+
+  describe "is_all_alpha?/1" do
+    test "determines if a string only contains numbers" do
+      refute Subject.is_all_alpha?("")
+      assert Subject.is_all_alpha?("abc")
+      refute Subject.is_all_alpha?("a1bc")
+    end
+  end
+
+  describe "is_all_alpha_numeric?/1" do
+    test "determines if a string only contains numbers" do
+      refute Subject.is_all_alpha_numeric?("")
+      assert Subject.is_all_alpha_numeric?("abc")
+      assert Subject.is_all_alpha_numeric?("a1bc")
+    end
+  end
+
+  describe "normalize_alpha_numeric/1" do
+    test "can normalize an alpha-numeric string" do
+      assert "ABC2" == Subject.normalize_alpha_numeric("  ABC_2")
     end
   end
 end

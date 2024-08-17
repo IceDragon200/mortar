@@ -4,6 +4,18 @@ defmodule Mortar.StringTest do
   alias Mortar.String, as: Subject
 
   describe "split_upto_newline/1" do
+    test "can split an empty string" do
+      assert [""] == Subject.split_upto_newline("")
+    end
+
+    test "can split a string with characters" do
+      assert ["abc def おもち"] == Subject.split_upto_newline("abc def おもち")
+    end
+
+    test "can split a string with newlines" do
+      assert ["abc", "\ndef\r\nおもち"] == Subject.split_upto_newline("abc\ndef\r\nおもち")
+    end
+
     test "can split a string without newlines" do
       assert ["ABC"] == Subject.split_upto_newline("ABC")
     end
@@ -19,9 +31,22 @@ defmodule Mortar.StringTest do
   end
 
   describe "split_by_newlines/1" do
+    test "can split an empty string" do
+      assert [""] == Subject.split_by_newlines("")
+    end
+
     test "can split a string by various newline sequences" do
       assert ["ABC", "DEF", "GHJ", "IJK"] == Subject.split_by_newlines("ABC\nDEF\rGHJ\r\nIJK")
       assert ["ABC\n", "DEF\r", "GHJ\r\n", "IJK"] == Subject.split_by_newlines("ABC\nDEF\rGHJ\r\nIJK", keep_newline: true)
+    end
+
+    test "can split a string with characters" do
+      assert ["abc def おもち"] == Subject.split_by_newlines("abc def おもち")
+    end
+
+    test "can split a string with newlines" do
+      assert ["abc", "def", "おもち"] == Subject.split_by_newlines("abc\ndef\r\nおもち")
+      assert ["abc\n", "def\r\n", "おもち"] == Subject.split_by_newlines("abc\ndef\r\nおもち", keep_newline: true)
     end
   end
 

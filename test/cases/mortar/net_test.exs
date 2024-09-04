@@ -25,4 +25,32 @@ defmodule Mortar.NetTest do
       assert {127, 0, 0, 1} == entry[:data]
     end
   end
+
+  describe "integer_to_ipv4/1" do
+    test "can convert a 32 bit integer to an ip address" do
+      assert {:ok, {127, 0, 0, 1}} = Subject.integer_to_ipv4(0x7F000001)
+    end
+  end
+
+  describe "string_to_ip/1" do
+    test "can convert a string to an ipv4 address" do
+      assert {:ok, {127, 0, 0, 1}} = Subject.string_to_ip("127.0.0.1")
+    end
+
+    test "can convert a string to an ipv6 address" do
+      assert {:ok, {0, 0, 0, 0, 0, 0, 0, 1}} = Subject.string_to_ip("::1")
+    end
+  end
+
+  describe "ip_to_string/1" do
+    test "can convert a ipv4 to a string" do
+      assert {:ok, "127.0.0.1"} == Subject.ip_to_string({127, 0, 0, 1})
+    end
+  end
+
+  describe "maybe_ip_to_string/1" do
+    test "can handle nil" do
+      assert {:ok, nil} == Subject.maybe_ip_to_string(nil)
+    end
+  end
 end

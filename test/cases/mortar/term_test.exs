@@ -23,6 +23,8 @@ defmodule Mortar.TermTest do
       assert %{nil => nil} == Subject.presence(%{nil => nil})
       assert %{nil => 0} == Subject.presence(%{nil => 0})
       assert %{a: 0} == Subject.presence(%{a: 0})
+      d = Date.utc_today()
+      assert d == Subject.presence(d)
     end
   end
 

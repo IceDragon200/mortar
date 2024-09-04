@@ -22,21 +22,20 @@ defmodule Mortar.Net do
     fqdn
   end
 
-  @spec integer_to_ipv4(integer()) :: :inet.ip4_address()
+  @spec integer_to_ipv4(integer()) :: {:ok, :inet.ip4_address()}
   def integer_to_ipv4(value) when is_integer(value) do
     <<
       a::integer-size(8),
       b::integer-size(8),
       c::integer-size(8),
       d::integer-size(8)
-    >> = <<value::little-integer-size(32)>>
-    {a, b, c, d}
+    >> = <<value::big-integer-size(32)>>
+    {:ok, {a, b, c, d}}
   end
 
-  @spec string_to_ip_address(String.t()) :: :inet.ip_address()
-  def string_to_ip_address(value) when is_binary(value) do
-    {:ok, ip} = :inet.parse_address(to_charlist(value))
-    ip
+  @spec string_to_ip(String.t()) :: {:ok, :inet.ip_address()}
+  def string_to_ip(value) when is_binary(value) do
+    :inet.parse_address(to_charlist(value))
   end
 
   @spec ip_to_string(:inet.ip_address()) :: {:ok, String.t()} | {:error, :bad_val}

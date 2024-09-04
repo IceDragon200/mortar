@@ -4,17 +4,27 @@ defmodule Mortar.Ecto.Changeset do
   """
   import Ecto.Changeset
 
-  def maybe_put_change_lazy(changeset, field, callback) do
+  @doc """
+  Put change if it hasn't already been set.
+
+  The value to put is lazily evaluated from given fun.
+  """
+  @spec put_new_change_lazy(Ecto.Changeset.t(), atom(), function()) :: Ecto.Changeset.t()
+  def put_new_change_lazy(%Ecto.Changeset{} = changeset, field, fun) when is_function(fun, 0) do
     case fetch_change(changeset, field) do
       {:ok, _} ->
         changeset
 
       :error ->
-        put_change(changeset, field, callback.())
+        put_change(changeset, field, fun.())
     end
   end
 
-  def maybe_put_change(changeset, field, value) do
+  @doc """
+  Put change if it hasn't already been set.
+  """
+  @spec put_new_change(Ecto.Changeset.t(), atom(), any()) :: Ecto.Changeset.t()
+  def put_new_change(%Ecto.Changeset{} = changeset, field, value) do
     case fetch_change(changeset, field) do
       {:ok, _} ->
         changeset
@@ -25,16 +35,38 @@ defmodule Mortar.Ecto.Changeset do
   end
 
   @doc """
-  Helper function for using the changeset function of the underlying record
+  Helper function for using the changeset function of the underlying record.
   """
-  def change_record(%Ecto.Changeset{data: %schema{}} = changeset, params, type) do
+  @spec change_record(
+    Ecto.Changeset.t() | Ecto.Schema.t(),
+    map(),
+    changeset_kind::atom()
+  ) :: Ecto.Changeset.t()
+  def change_record(%Ecto.Changeset{data: %schema{}} = changeset, params, changeset_kind) do
     changeset
-    |> schema.changeset(params, type)
+    |> schema.changeset(params, changeset_kind)
   end
 
-  def change_record(%schema{} = record, params, type) do
+  def change_record(%schema{} = record, params, changeset_kind) do
     record
-    |> schema.changeset(params, type)
+    |> schema.changeset(params, changeset_kind)
+  end
+
+  @doc """
+  Helper function for using the changeset function of the underlying record.
+  """
+  @spec change_record(
+    Ecto.Changeset.t() | Ecto.Schema.t(),
+    map()
+  ) :: Ecto.Changeset.t()
+  def change_record(%Ecto.Changeset{data: %schema{}} = changeset, params) do
+    changeset
+    |> schema.changeset(params)
+  end
+
+  def change_record(%schema{} = record, params) do
+    record
+    |> schema.changeset(params)
   end
 
   def apply_auto(%Ecto.Changeset{data: %schema{}} = changeset, type) do

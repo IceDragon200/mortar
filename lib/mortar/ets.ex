@@ -10,6 +10,48 @@ defmodule Mortar.ETS do
 
   @type while_reducer_function :: (tuple(), acc -> acc_res)
 
+  @since "0.2.0"
+  @spec stream_ets_table(:ets.table()) :: Stream.t()
+  def stream_ets_table(table) do
+    Stream.resource(
+      fn ->
+        {table, :ets.first(table)}
+      end,
+      fn
+        {_table, :"$end_of_table"} = res ->
+          {:halt, res}
+
+        {table, key} ->
+          {:ets.lookup(table, key), {table, :ets.next(table, key)}}
+      end,
+      fn _ ->
+        :ok
+      end
+    )
+  end
+
+  @since "0.2.0"
+  @spec safe_stream_ets_table(:ets.table()) :: Stream.t()
+  def safe_stream_ets_table(table) do
+    Stream.resource(
+      fn ->
+        :ets.safe_fixtable(table, true)
+        {table, :ets.first(table)}
+      end,
+      fn
+        {_table, :"$end_of_table"} = res ->
+          {:halt, res}
+
+        {table, key} ->
+          {:ets.lookup(table, key), {table, :ets.next(table, key)}}
+      end,
+      fn {table, _} ->
+        :ets.safe_fixtable(table, false)
+        :ok
+      end
+    )
+  end
+
   @spec safe_reduce_ets_table(:ets.table(), acc(), reducer_function()) :: acc()
   def safe_reduce_ets_table(table, acc, fun) do
     safe_reduce_ets_table_while(table, acc, fn obj, acc ->

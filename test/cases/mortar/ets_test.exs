@@ -3,6 +3,48 @@ defmodule Mortar.ETSTest do
 
   alias Mortar.ETS, as: Subject
 
+  describe "stream_ets_table/1" do
+    test "can stream an ets table" do
+      table = :ets.new(:test, [:private, :set])
+
+      true = :ets.insert(table, {:a, 1})
+      true = :ets.insert(table, {:b, 2, "B"})
+      true = :ets.insert(table, {:c, 3, "C", []})
+
+      result =
+        Subject.stream_ets_table(table)
+        |> Enum.into([])
+        |> Enum.sort()
+
+      assert [
+        {:a, 1},
+        {:b, 2, "B"},
+        {:c, 3, "C", []},
+      ] == result
+    end
+  end
+
+  describe "safe_stream_ets_table/1" do
+    test "can stream an ets table" do
+      table = :ets.new(:test, [:private, :set])
+
+      true = :ets.insert(table, {:a, 1})
+      true = :ets.insert(table, {:b, 2, "B"})
+      true = :ets.insert(table, {:c, 3, "C", []})
+
+      result =
+        Subject.stream_ets_table(table)
+        |> Enum.into([])
+        |> Enum.sort()
+
+      assert [
+        {:a, 1},
+        {:b, 2, "B"},
+        {:c, 3, "C", []},
+      ] == result
+    end
+  end
+
   describe "safe_reduce_ets_table/3" do
     test "can reduce an empty ets table" do
       table = :ets.new(:test, [:private, :set])

@@ -11,7 +11,11 @@ defmodule Mortar.Ecto do
   It's main usecase is to trim the size of a context record before serialization to reduce the
   payload size.
   """
-  @spec unload_association(Ecto.Schema.t(), atom()) :: Ecto.Schema.t()
+  @spec unload_association(Ecto.Schema.t() | nil, atom()) :: Ecto.Schema.t() | nil
+  def unload_association(nil, _field) do
+    nil
+  end
+
   def unload_association(%schema{} = record, field) do
     nl = to_association_not_loaded(schema.__schema__(:association, field))
 
@@ -27,7 +31,11 @@ defmodule Mortar.Ecto do
   Args:
   * `record` - the record to unload the associations on
   """
-  @spec unload_associations(Ecto.Schema.t()) :: Ecto.Schema.t()
+  @spec unload_associations(Ecto.Schema.t() | nil) :: Ecto.Schema.t() | nil
+  def unload_associations(nil) do
+    nil
+  end
+
   def unload_associations(%schema{} = record) do
     unload_associations(record, schema.__schema__(:associations))
   end
@@ -35,9 +43,19 @@ defmodule Mortar.Ecto do
   @doc """
   Does the same thing as unload_association/2 but unloads a list of fields
   """
-  @spec unload_associations(Ecto.Schema.t(), [atom()]) :: Ecto.Schema.t()
+  @spec unload_associations(Ecto.Schema.t() | nil, [atom()]) :: Ecto.Schema.t() | nil
+  def unload_associations(nil, _fields) do
+    nil
+  end
+
   def unload_associations(record, fields) do
     Enum.reduce(fields, record, &unload_association(&2, &1))
+  end
+
+  @spec to_association_not_loaded(Ecto.Association.NotLoaded.t() | nil) ::
+    Ecto.Association.NotLoaded.t() | nil
+  def to_association_not_loaded(nil) do
+    nil
   end
 
   def to_association_not_loaded(%Ecto.Association.NotLoaded{} = nl) do

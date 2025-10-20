@@ -10,7 +10,7 @@ defmodule Mortar.ETS do
 
   @type while_reducer_function :: (tuple(), acc -> acc_res)
 
-  @since "0.2.0"
+  @doc since: "0.2.0"
   @spec stream_ets_table(:ets.table()) :: Stream.t()
   def stream_ets_table(table) do
     Stream.resource(
@@ -30,7 +30,7 @@ defmodule Mortar.ETS do
     )
   end
 
-  @since "0.2.0"
+  @doc since: "0.2.0"
   @spec safe_stream_ets_table(:ets.table()) :: Stream.t()
   def safe_stream_ets_table(table) do
     Stream.resource(
@@ -92,7 +92,7 @@ defmodule Mortar.ETS do
     do_reduce_ets_table_while(key, table, acc, fun)
   end
 
-  defp do_reduce_ets_table_while(:'$end_of_table', _table, acc, _fun) do
+  defp do_reduce_ets_table_while(:"$end_of_table", _table, acc, _fun) do
     acc
   end
 

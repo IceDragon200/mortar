@@ -125,16 +125,7 @@ defmodule Mortar.ETS do
   Insert the given object if its key doesn't exist yet.
   """
   @spec insert_new(:ets.table(), tuple()) :: boolean()
-  def insert_new(table, object) when is_tuple(object) do
-    key = elem(object, 0)
-    case :ets.lookup(table, key) do
-      [] ->
-        :ets.insert(table, object)
-
-      [_ | _] ->
-        false
-    end
-  end
+  defdelegate insert_new(table, object), to: :ets
 
   @doc """
   Insert object evaluated from fun if key does not already exist.

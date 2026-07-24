@@ -104,7 +104,7 @@ defmodule Mortar.String do
     <<c1::utf8, c2::utf8, _rest::binary>>,
     count
   ) when is_utf8_twochar_newline(c1, c2) do
-    <<seg::binary-size(count), rest::binary>> = blob
+    <<seg::binary-size(^count), rest::binary>> = blob
     [seg, rest]
   end
 
@@ -113,7 +113,7 @@ defmodule Mortar.String do
     <<c::utf8, _rest::binary>>,
     count
   ) when is_utf8_newline_like_char(c) do
-    <<seg::binary-size(count), rest::binary>> = blob
+    <<seg::binary-size(^count), rest::binary>> = blob
     [seg, rest]
   end
 
@@ -153,11 +153,11 @@ defmodule Mortar.String do
     # count + utf8_char_byte_size(c1) + utf8_char_byte_size(c2)
     if options[:keep_newline] do
       count = count + utf8_char_byte_size(c1) + utf8_char_byte_size(c2)
-      <<seg::binary-size(count), rest::binary>> = blob
+      <<seg::binary-size(^count), rest::binary>> = blob
       do_split_by_newlines(rest, rest, 0, [seg | acc], options)
     else
       nl_size = utf8_char_byte_size(c1) + utf8_char_byte_size(c2)
-      <<seg::binary-size(count), _nl::binary-size(nl_size), rest::binary>> = blob
+      <<seg::binary-size(^count), _nl::binary-size(^nl_size), rest::binary>> = blob
       do_split_by_newlines(rest, rest, 0, [seg | acc], options)
     end
   end
@@ -171,11 +171,11 @@ defmodule Mortar.String do
   ) when is_utf8_newline_like_char(c) do
     if options[:keep_newline] do
       count = count + utf8_char_byte_size(c)
-      <<seg::binary-size(count), rest::binary>> = blob
+      <<seg::binary-size(^count), rest::binary>> = blob
       do_split_by_newlines(rest, rest, 0, [seg | acc], options)
     else
       nl_size = utf8_char_byte_size(c)
-      <<seg::binary-size(count), _nl::binary-size(nl_size), rest::binary>> = blob
+      <<seg::binary-size(^count), _nl::binary-size(^nl_size), rest::binary>> = blob
       do_split_by_newlines(rest, rest, 0, [seg | acc], options)
     end
   end
@@ -575,7 +575,7 @@ defmodule Mortar.String do
 
         bin ->
           case bin do
-            <<chunk::binary-size(chunk_size), rest::binary>> ->
+            <<chunk::binary-size(^chunk_size), rest::binary>> ->
               {[chunk], rest}
 
             chunk when is_binary(chunk) ->
